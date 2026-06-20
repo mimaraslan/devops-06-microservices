@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: config-server-local
-        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/configserverlocal:4
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/configserverlocal:5
         imagePullPolicy: Always
         ports:
         - containerPort: 8888
