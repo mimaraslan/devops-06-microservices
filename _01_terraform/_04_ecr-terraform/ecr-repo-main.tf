@@ -18,9 +18,7 @@ locals {
     "dashboardeurekaserver",
     "fraudservice",
     "ledgerservice",
-    "notificationservice",
-    "reportservice",
-    "transactionservice"
+    "notificationservice"
   ]
 }
 
