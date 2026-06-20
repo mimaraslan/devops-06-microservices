@@ -1,0 +1,18 @@
+# Kopyalayin: cp terraform.tfvars.example terraform.tfvars
+# terraform.tfvars git'e eklenmez (makineye ozel ayarlar icin kullanin).
+
+allowed_cidr_blocks      = ["0.0.0.0/0"]
+allowed_ipv6_cidr_blocks = ["::/0"]
+auto_detect_public_ip    = false
+
+# IAM: mydemo-iam-role1 + mydemo-profile terraform apply ile olusturulur, destroy ile silinir.
+
+# Opsiyonel: PEM baska yerdeyse mutlak yol (Windows: C:/..., macOS: /Users/...)
+# ssh_private_key_path = "C:/Users/USER/.ssh/My-Key-Linux-Amazon.pem"
+#
+# Varsayilan PEM: _01_terraform/My-Key-Linux-Amazon.pem
+# macOS (repo kokunden bir kez):
+#   chmod 400 _01_terraform/My-Key-Linux-Amazon.pem
+#
+# Windows: OpenSSH istemcisi gerekir (Windows 10+ varsayilan).
+#   terraform init && terraform apply  (_02_ec2-main klasorunden)

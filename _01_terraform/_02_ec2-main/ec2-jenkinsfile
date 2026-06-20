@@ -1,0 +1,101 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['apply', 'destroy'],
+            description: '🔧 Yapılacak işlemi seçin (apply: EC2 ve altyapıyı kurar, destroy: Her şeyi siler!)'
+        )
+    }
+
+    stages {
+        stage('Checkout from Git') {
+            steps {
+                echo 'GitHub repository çekiliyor...'
+                checkout scm 
+            }
+        }
+
+        stage('Terraform Version') {
+            steps {
+                sh 'terraform --version'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('_01_terraform/_02_ec2-main') {
+                    // S3 backend ve provider yapılandırmasını başlatır
+                    sh 'terraform init --reconfigure'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('_01_terraform/_02_ec2-main') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('_01_terraform/_02_ec2-main') {
+                    // Plan dosyasını oluşturur. 
+                    // Bu dosya provisioner (SSH) adımlarının güvenliği için kritiktir.
+                    sh 'terraform plan -out=tfplan_ec2'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            when {
+                expression { params.ACTION == 'apply' }
+            }
+            steps {
+                dir('_01_terraform/_02_ec2-main') {
+                    // SSH bağlantısı (remote-exec) bu aşamada gerçekleşir.
+                    // Logları Jenkins konsolundan canlı izleyebilirsin.
+                    sh 'terraform apply -auto-approve tfplan_ec2'
+                }
+            }
+        }
+
+        stage('Terraform Destroy Confirm') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            steps {
+                // EC2 ve EIP silinmeden önce manuel onay mekanizması
+                input message: "Ana EC2 makinesini ve bağlı tüm kaynakları silmek istiyor musunuz?", ok: "Evet, Sil"
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            steps {
+                dir('_01_terraform/_02_ec2-main') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "--------------------------------------------------"
+            echo "EC2 İşlemi Tamamlandı. Durum: ${currentBuild.result}"
+            echo "--------------------------------------------------"
+        }
+        success {
+            echo "✅ EC2 ve Provisioner kurulumu başarıyla tamamlandı."
+        }
+        failure {
+            echo "❌ EC2 kurulumu başarısız oldu. SSH anahtarı veya paket kilidi (dnf lock) hatası olabilir."
+        }
+    }
+}

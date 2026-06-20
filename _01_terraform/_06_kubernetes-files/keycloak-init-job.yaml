@@ -1,0 +1,49 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-init-job
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: keycloak-init
+        image: curlimages/curl:8.12.1
+        env:
+        - name: KEYCLOAK_URL
+          value: "http://keycloak:8080"
+        - name: KEYCLOAK_ADMIN
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: keycloak-admin
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: keycloak-admin-password
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: keycloak-client-secret
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          until curl -sf "${KEYCLOAK_URL}/health/ready" >/dev/null 2>&1; do sleep 5; done
+          TOKEN=$(curl -sf -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+            -d "username=${KEYCLOAK_ADMIN}" -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+            -d "grant_type=password" -d "client_id=admin-cli" \
+            | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+          CLIENT_ID=$(curl -sf "${KEYCLOAK_URL}/admin/realms/master/clients?clientId=account-service" \
+            -H "Authorization: Bearer ${TOKEN}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)
+          if [ -z "${CLIENT_ID}" ]; then
+            curl -sf -X POST "${KEYCLOAK_URL}/admin/realms/master/clients" \
+              -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+              -d '{"clientId":"account-service","enabled":true,"publicClient":false,"directAccessGrantsEnabled":true,"standardFlowEnabled":true,"secret":"'"${KEYCLOAK_CLIENT_SECRET}"'"}'
+          fi
+          echo "Keycloak account-service client ready."

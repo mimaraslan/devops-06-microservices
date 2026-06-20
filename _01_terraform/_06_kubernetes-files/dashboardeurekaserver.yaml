@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-eureka-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: dashboard-eureka-server
+  template:
+    metadata:
+      labels:
+        app: dashboard-eureka-server
+    spec:
+      containers:
+      - name: dashboard-eureka-server
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/dashboardeurekaserver:6
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8761
+        env:
+        - name: SERVER_PORT
+          value: "8761"
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: "file:/config/"
+        livenessProbe:
+          tcpSocket:
+            port: 8761
+          initialDelaySeconds: 45
+          periodSeconds: 15
+        readinessProbe:
+          tcpSocket:
+            port: 8761
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        volumeMounts:
+        - name: eureka-config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: eureka-config
+        configMap:
+          name: eureka-server-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-eureka-server
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-name: project-ms-public-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: dashboard-eureka-server
+  ports:
+  - name: http
+    port: 8761
+    targetPort: 8761

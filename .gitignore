@@ -1,0 +1,47 @@
+# Ortam degiskenleri (sifreler) — ornek: .env.example
+.env
+.env.local
+
+# Kubernetes secrets (gercek degerler)
+_01_terraform/_06_kubernetes-files/secrets.yaml
+
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# Project exclude paths
+/_01_terraform/_01_s3-buckets/.terraform/
+/_01_terraform/_02_ec2-main/.terraform/

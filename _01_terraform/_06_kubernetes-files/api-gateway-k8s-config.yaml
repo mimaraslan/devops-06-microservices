@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-k8s-config
+data:
+  application-kubernetes.properties: |
+    spring.cloud.gateway.discovery.locator.enabled=false
+    spring.cloud.gateway.routes[0].id=account-service
+    spring.cloud.gateway.routes[0].uri=http://account-service:9591
+    spring.cloud.gateway.routes[0].predicates[0]=Path=/account/**
+    spring.cloud.gateway.routes[0].filters[0].name=CircuitBreaker
+    spring.cloud.gateway.routes[0].filters[0].args.name=account
+    spring.cloud.gateway.routes[0].filters[0].args.fallbackUri=forward:/fallback/account
+    spring.cloud.gateway.routes[1].id=ledger-service
+    spring.cloud.gateway.routes[1].uri=http://ledger-service:9592
+    spring.cloud.gateway.routes[1].predicates[0]=Path=/ledger/**
+    spring.cloud.gateway.routes[1].filters[0].name=CircuitBreaker
+    spring.cloud.gateway.routes[1].filters[0].args.name=ledger
+    spring.cloud.gateway.routes[1].filters[0].args.fallbackUri=forward:/fallback/ledger
+    spring.cloud.gateway.routes[2].id=fraud-service
+    spring.cloud.gateway.routes[2].uri=http://fraud-service:9593
+    spring.cloud.gateway.routes[2].predicates[0]=Path=/fraud/**
+    spring.cloud.gateway.routes[2].filters[0].name=CircuitBreaker
+    spring.cloud.gateway.routes[2].filters[0].args.name=fraud
+    spring.cloud.gateway.routes[2].filters[0].args.fallbackUri=forward:/fallback/fraud
+    spring.cloud.gateway.routes[3].id=notification-service
+    spring.cloud.gateway.routes[3].uri=http://notification-service:9594
+    spring.cloud.gateway.routes[3].predicates[0]=Path=/notification/**
+    spring.cloud.gateway.routes[3].filters[0].name=CircuitBreaker
+    spring.cloud.gateway.routes[3].filters[0].args.name=notification
+    spring.cloud.gateway.routes[3].filters[0].args.fallbackUri=forward:/fallback/notification

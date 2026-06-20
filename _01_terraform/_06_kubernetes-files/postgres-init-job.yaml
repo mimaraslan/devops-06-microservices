@@ -1,0 +1,43 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-init-job
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: postgres-init
+        image: postgres:17
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: postgres-password
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -euo pipefail
+
+          until pg_isready -h postgres -p 5432 -U postgres >/dev/null 2>&1; do
+            echo "Waiting for postgres service..."
+            sleep 2
+          done
+
+          psql -h postgres -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'Micro_AccountServiceDB'" | grep -q 1 \
+            || psql -h postgres -U postgres -d postgres -c 'CREATE DATABASE "Micro_AccountServiceDB";'
+
+          psql -h postgres -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'Micro_LedgerServiceDB'" | grep -q 1 \
+            || psql -h postgres -U postgres -d postgres -c 'CREATE DATABASE "Micro_LedgerServiceDB";'
+
+          psql -h postgres -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'Micro_FraudServiceDB'" | grep -q 1 \
+            || psql -h postgres -U postgres -d postgres -c 'CREATE DATABASE "Micro_FraudServiceDB";'
+
+          psql -h postgres -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'Micro_NotificationServiceDB'" | grep -q 1 \
+            || psql -h postgres -U postgres -d postgres -c 'CREATE DATABASE "Micro_NotificationServiceDB";'
+
+          echo "Database initialization completed."

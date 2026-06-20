@@ -1,0 +1,120 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['apply', 'destroy'],
+            description: '🔧 Yapılacak işlemi seçin (apply: EKS cluster kurar, destroy: Cluster siler!)'
+        )
+    }
+
+    stages {
+        stage('Checkout from Git') {
+            steps {
+                echo 'GitHub repository çekiliyor...'
+                checkout scm
+            }
+        }
+
+        stage('Terraform Version') {
+            steps {
+                sh 'terraform --version'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('_01_terraform/_03_eks-terraform') {
+                    sh 'terraform init --reconfigure'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('_01_terraform/_03_eks-terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            when {
+                expression { params.ACTION == 'apply' }
+            }
+            steps {
+                dir('_01_terraform/_03_eks-terraform') {
+                    sh 'terraform plan -out=tfplan_eks'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            when {
+                expression { params.ACTION == 'apply' }
+            }
+            steps {
+                dir('_01_terraform/_03_eks-terraform') {
+                    sh 'terraform apply -auto-approve tfplan_eks'
+                }
+            }
+        }
+
+        stage('Terraform Outputs') {
+            when {
+                expression { params.ACTION == 'apply' }
+            }
+            steps {
+                dir('_01_terraform/_03_eks-terraform') {
+                    sh '''
+                        export PATH="/usr/local/bin:/usr/bin:$PATH"
+
+                        echo "=== Terraform Outputs ==="
+                        terraform output
+
+                        echo "=== Kubeconfig ==="
+                        terraform output -raw kubeconfig_command | bash
+
+                        kubectl config current-context
+                        kubectl get nodes
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Destroy Confirm') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            steps {
+                input message: "EKS Cluster'ı silmek istediğinizden emin misiniz?", ok: "Evet, Sil"
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            steps {
+                dir('_01_terraform/_03_eks-terraform') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "--------------------------------------------------"
+            echo "EKS İşlemi Tamamlandı. Durum: ${currentBuild.result}"
+            echo "--------------------------------------------------"
+        }
+        success {
+            echo "✅ EKS işlemi başarıyla tamamlandı."
+        }
+        failure {
+            echo "❌ EKS işlemi başarısız oldu. Logları ve Access Entry ayarlarını kontrol edin."
+        }
+    }
+}
