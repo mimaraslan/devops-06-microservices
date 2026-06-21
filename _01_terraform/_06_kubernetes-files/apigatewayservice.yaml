@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: api-gateway-service
-        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/apigatewayservice:4
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/apigatewayservice:5
         imagePullPolicy: Always
         ports:
         - containerPort: 80
