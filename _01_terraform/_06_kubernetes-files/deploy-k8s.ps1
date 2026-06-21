@@ -103,8 +103,6 @@ $keycloakHost = kubectl get svc keycloak -o jsonpath='{.status.loadBalancer.ingr
 Write-Host ""
 Write-Host "=== Public URLs ==="
 Write-Host "API Gateway : http://${hostname}/"
-Write-Host "Jenkins     : http://${hostname}:8080"
-Write-Host "SonarQube   : http://${hostname}:9000"
 Write-Host "Eureka      : http://${hostname}:8761"
 if ($keycloakHost) {
     Write-Host "Keycloak    : http://${keycloakHost}:8180/admin/master/console/"
