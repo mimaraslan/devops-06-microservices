@@ -23,6 +23,7 @@ pipeline {
                 checkout scm
             }
         }
+
 stage("Docker Image Build") {
             steps {
                 sh 'docker system prune -f'
