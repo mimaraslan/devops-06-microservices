@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: account-service
-        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/accountservice:5
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/accountservice:6
         imagePullPolicy: Always
         ports:
         - containerPort: 9591
