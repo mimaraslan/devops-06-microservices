@@ -19,7 +19,7 @@ COPY settings.gradle ./
 RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
 
 # Netflix Eureka service discovery ve dashboard modülü
-#COPY DashboardEurekaServer/ ./DashboardEurekaServer/
+COPY DashboardEurekaServer/ ./DashboardEurekaServer/
 
 # Gradle daemon kapalı; konteyner içinde daemon gereksiz bellek tüketir
 ENV JAVA_TOOL_OPTIONS="-Xmx1536m -XX:MaxMetaspaceSize=512m"
