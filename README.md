@@ -1,4 +1,4 @@
-# Java Microservices Project
+# Java Microservices Project ve DevOps
 
 Yüksek eşzamanlılık ve dağıtık dayanıklılık hedefleriyle tasarlanmış, **Spring Boot 3** ve **Spring Cloud** tabanlı bir **para transferi ve hesap yönetimi** mikroservis sistemidir. İstemci trafiği API Gateway üzerinden yönlendirilir; iş kuralları domain servislerine ayrılmıştır; **Kafka** ile asenkron entegrasyon, **Redis** ile önbellek ve hız sınırı, **PostgreSQL** ile kalıcılık, **Keycloak** ile kimlik doğrulama kullanılır.
 
