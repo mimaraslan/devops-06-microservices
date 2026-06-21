@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: fraud-service
-        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/fraudservice:3
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/fraudservice:4
         imagePullPolicy: Always
         ports:
         - containerPort: 9593
