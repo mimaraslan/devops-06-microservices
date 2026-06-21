@@ -27,6 +27,14 @@ foreach ($ns in $extraPvcs) {
 Write-Host "Secrets uygulaniyor..."
 kubectl apply -f secrets.yaml
 
+
+# === YENI EKLENECEK KISIM ===
+# Eski tamamlanmış Job'ı sil ki kustomize apply edildiğinde yeniden tetiklensin
+Write-Host 'Eski Postgres Init Job kalintilari temizleniyor...'
+kubectl delete job postgres-init-job -n default --ignore-not-found 2>$null
+# ============================
+
+
 Write-Host 'Manifestler uygulaniyor - kustomize namespace default...'
 kubectl apply -k .
 # default/postgres-data PVC asla silinmez; apply mevcut volume baglantisini surdurur
