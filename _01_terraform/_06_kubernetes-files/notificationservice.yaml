@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: notification-service
-        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/notificationservice:4
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/notificationservice:5
         imagePullPolicy: Always
         ports:
         - containerPort: 9594
