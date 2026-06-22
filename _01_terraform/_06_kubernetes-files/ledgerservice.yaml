@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: ledger-service
-        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/ledgerservice:5
+        image: 405834051687.dkr.ecr.us-east-1.amazonaws.com/ledgerservice:7
         imagePullPolicy: Always
         ports:
         - containerPort: 9592
