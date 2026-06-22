@@ -538,8 +538,8 @@ Kısa script: `_01_terraform/_02_ec2-main/kubernetes.sh`
 | [SAGA_PATTERN_ANALYSIS.md](README/SAGA_PATTERN_ANALYSIS.md) | Saga / dağıtık işlem notları ve analiz                           |
 | [CASE_STUDY_EVALUATION.md](README/CASE_STUDY_EVALUATION.md) | Case study karşılaştırması (özet + tarihsel iyileştirme notları) |
 | [CASE_STUDY_EVALUATION_UPDATED.md](README/CASE_STUDY_EVALUATION_UPDATED.md) | Güncellenmiş gereksinim matrisi ve kalan işler                   |
-| [Case Study EN.pdf](README/Case%20Study%20EN.pdf) | Case study metni (İngilizce)                                     |
-| [Case Study TR.pdf](README/Case%20Study%20TR.pdf) | Durum çalışması metni (Türkçe)                                   |
+| [Case Study EN.pdf](README/Case%20Study%20EN.pdf) | Case study PDF (İngilizce)                                     |
+| [Case Study TR.pdf](README/Case%20Study%20TR.pdf) | Durum çalışması PDF (Türkçe)                                     |
 
 ---
 
