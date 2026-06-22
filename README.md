@@ -529,17 +529,17 @@ Kısa script: `_01_terraform/_02_ec2-main/kubernetes.sh`
 
 ## README rapor indeksi
 
-| Dosya | İçerik |
-|--------|--------|
-| [DOCKER_DEPLOYMENT_GUIDE.md](README/DOCKER_DEPLOYMENT_GUIDE.md) | Docker build, compose, portlar, sorun giderme, kontrol listesi |
-| [KAFKA_REDIS_AKIS_BASIT.md](README/KAFKA_REDIS_AKIS_BASIT.md) | Kafka konuları, Redis (cache + rate limit) kısa özet |
-| [KAFKA_REDIS_USAGE_REPORT.md](README/KAFKA_REDIS_USAGE_REPORT.md) | Kafka ve Redis kullanımının ayrıntılı raporu |
-| [OPTIMISTIC_LOCKING_OZET.md](README/OPTIMISTIC_LOCKING_OZET.md) | Ledger’da optimistic locking ve sürüm güncellemeleri |
-| [SAGA_PATTERN_ANALYSIS.md](README/SAGA_PATTERN_ANALYSIS.md) | Saga / dağıtık işlem notları ve analiz |
+| Dosya | İçerik                                                           |
+|--------|------------------------------------------------------------------|
+| [DOCKER_DEPLOYMENT_GUIDE.md](README/DOCKER_DEPLOYMENT_GUIDE.md) | Docker build, compose, portlar, sorun giderme, kontrol listesi   |
+| [KAFKA_REDIS_AKIS_BASIT.md](README/KAFKA_REDIS_AKIS_BASIT.md) | Kafka konuları, Redis (cache + rate limit) kısa özet             |
+| [KAFKA_REDIS_USAGE_REPORT.md](README/KAFKA_REDIS_USAGE_REPORT.md) | Kafka ve Redis kullanımının ayrıntılı raporu                     |
+| [OPTIMISTIC_LOCKING_OZET.md](README/OPTIMISTIC_LOCKING_OZET.md) | Ledger’da optimistic locking ve sürüm güncellemeleri             |
+| [SAGA_PATTERN_ANALYSIS.md](README/SAGA_PATTERN_ANALYSIS.md) | Saga / dağıtık işlem notları ve analiz                           |
 | [CASE_STUDY_EVALUATION.md](README/CASE_STUDY_EVALUATION.md) | Case study karşılaştırması (özet + tarihsel iyileştirme notları) |
-| [CASE_STUDY_EVALUATION_UPDATED.md](README/CASE_STUDY_EVALUATION_UPDATED.md) | Güncellenmiş gereksinim matrisi ve kalan işler |
-| [Case Study EN.pdf](README/Case%20Study%20EN.pdf) | Orijinal case study metni (İngilizce) |
-| [Case Study TR.pdf](README/Case%20Study%20TR.pdf) | Orijinal case study metni (Türkçe) |
+| [CASE_STUDY_EVALUATION_UPDATED.md](README/CASE_STUDY_EVALUATION_UPDATED.md) | Güncellenmiş gereksinim matrisi ve kalan işler                   |
+| [Case Study EN.pdf](README/Case%20Study%20EN.pdf) | Case study metni (İngilizce)                                     |
+| [Case Study TR.pdf](README/Case%20Study%20TR.pdf) | Durum çalışması metni (Türkçe)                                   |
 
 ---
 
