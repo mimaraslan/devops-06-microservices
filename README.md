@@ -87,7 +87,7 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
        ▼                         ▼           ▼         ▼             ▼
   ┌─────────────┐         ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌──────────┐
   │ API Gateway │────────▶│ Keycloak │ │PostgreSQL│ │  Redis  │ │  Kafka   │
-  │   :80       │         └──────────┘ │    DB    │ │  cache  │ │ Redpanda │
+  │   :80       │         └──────────┘ │    DB    │ │  cache  │ │  :9092   │
   └──────┬──────┘                      └──────────┘ └─────────┘ └──────────┘
          │
          ▼
@@ -110,7 +110,7 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
  ┌─────────────────┐       ┌──────────────────────┐       ┌───────────────┐
  │ postgres        │       │ postgres-init        │       │ config-server │
  │ redis           │  ──▶  │ keycloak             │  ──▶  └───────┬───────┘
- │ redpanda        │       │ eureka-server        │               │
+ │ kafka           │       │ eureka-server        │               │
  │ zipkin          │       └──────────────────────┘               │
  └─────────────────┘                                              ▼
                                                          DALGA 4 (paralel)
@@ -147,7 +147,7 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
           │             │            │           │      └────────────┘
           ▼             ▼            ▼           ▼
     ┌─────────────────────────────────────────────────────────────┐
-    │  postgres ◀── postgres-init    redpanda    zipkin (started) │
+    │  postgres ◀── postgres-init    kafka       zipkin (started) │
     └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -156,7 +156,7 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
 | `postgres` | `postgres-init`, `keycloak`, `account`, `ledger` |
 | `postgres-init` | `account`, `ledger` (completed) |
 | `redis` | `account`, `ledger`, `api-gateway` |
-| `redpanda` | `ledger`, `fraud`, `notification` |
+| `kafka` | `ledger`, `fraud`, `notification` |
 | `keycloak` | `account`, `api-gateway` |
 | `eureka-server` | `config-server`, tüm mikroservisler, `api-gateway` |
 | `config-server` | tüm mikroservisler, `api-gateway` |
