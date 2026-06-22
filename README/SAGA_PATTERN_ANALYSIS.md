@@ -343,7 +343,6 @@ PENDING → (Fraud Check) → SUCCESS / FRAUD / FAILED
 
 ---
 
-**Rapor Tarihi:** 2025-12-21  
 **Proje:** Java Microservices Project  
 **Pattern:** Choreography-based SAGA
 

@@ -19,6 +19,7 @@ Yüksek eşzamanlılık ve dağıtık dayanıklılık hedefleriyle tasarlanmış
 - [Yapılandırma](#yapılandırma)
 - [AWS EKS + ECR deployment](#aws-eks--ecr-deployment)
 - [EKS duraklatma ve devam](#eks-duraklatma-ve-devam)
+- [DevOps araçları (ArgoCD, Helm, Monitoring)](#devops-araçları-argocd-helm-monitoring)
 - [README rapor indeksi](#readme-rapor-indeksi)
 
 ---
@@ -48,7 +49,7 @@ Case study ve iyileştirme özetleri için bkz. [`README/CASE_STUDY_EVALUATION_U
 - **Spring Cloud Netflix Eureka** — servis keşfi
 - **Spring Cloud Config** — yerel `native` profil ile `classpath:/config-repo` üzerinden ortak YAML
 - **Spring Cloud Gateway** (WebFlux), **OAuth2 Resource Server** (JWT / Keycloak JWK)
-- **Kafka (Redpanda)** — asenkron mesajlaşma (Kafka API uyumlu; altyapıda Redpanda broker)
+- **Kafka** — asenkron mesajlaşma
 - **PostgreSQL**, **Redis**
 - **Keycloak** — kullanıcı yönetimi ve token (Account servisi entegrasyonu)
 - **Resilience4j**, **Spring Retry** (seçili dış çağrılarda)
@@ -172,8 +173,8 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
 | `eureka-server` | Bağımsız (ilk platform servisi) |
 | `config-server` | `eureka-server` **healthy** |
 | `account-service` | `postgres-init` **completed**, `postgres` + `redis` + `keycloak` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
-| `ledger-service` | `postgres-init` **completed**, `postgres` + `redis` + `redpanda` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
-| `fraud-service` / `notification-service` | `redpanda` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
+| `ledger-service` | `postgres-init` **completed**, `postgres` + `redis` + `kafka` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
+| `fraud-service` / `notification-service` | `kafka` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
 | `api-gateway` | Tüm mikroservisler + `keycloak` + `redis` + `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
 
 ### Healthcheck notları
@@ -182,7 +183,7 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
 |---------|---------|
 | PostgreSQL | `pg_isready` |
 | Redis | `redis-cli ping` |
-| Redpanda (Kafka) | `rpk cluster health` |
+| Kafka | `rpk cluster health` |
 | Keycloak | `/health/ready` (TCP) |
 | Eureka / Config / mikroservisler / Gateway | `curl` → `/actuator/health` |
 | Zipkin | `wget` → `/health` |
@@ -263,7 +264,7 @@ Docker ve host eşlemelerinin tam tablosu için: [`README/DOCKER_DEPLOYMENT_GUID
 | Zipkin | 9411 |
 | PostgreSQL (compose host eşlemesi dokümana göre) | 9999 |
 | Redis | 6379 |
-| Kafka (Redpanda) | 9092 |
+| Kafka | 9092 |
 
 ---
 
@@ -332,7 +333,7 @@ Postgres verisi **EBS PVC** (`postgres-data`, 10 GB `gp2`) üzerinde tutulur. Wo
 | Depolama | Bileşen | Worker restart sonrası |
 |----------|---------|------------------------|
 | **PVC (EBS)** | Postgres | Veri **korunur** |
-| `emptyDir` | Redis, Kafka (Redpanda) | Veri sıfırlanır (dev ortamı için kabul edilebilir) |
+| `emptyDir` | Redis, Kafka | Veri sıfırlanır (dev ortamı için kabul edilebilir) |
 
 İlk PVC kurulumundan sonra yalnızca `postgres-init-job` bir kez çalıştırılmalıdır; sonraki worker restart'larında tekrar gerekmez.
 
@@ -422,6 +423,110 @@ Resume sonrası `deploy-k8s.ps1` zorunlu değildir; pod'lar Pending/CrashLoop is
 
 ---
 
+## DevOps araçları (ArgoCD, Helm, Monitoring)
+
+EKS cluster ayaktayken **Jenkins EC2** veya `kubectl` yapılandırılmış bir makineden çalıştırın.
+
+**Ön koşul** — kubeconfig ve node kontrolü:
+
+```powershell
+aws eks update-kubeconfig --region us-east-1 --name project-eks
+kubectl get nodes   # en az bir node Ready olmalı
+```
+
+```
+  ┌─────────────┐     ┌──────────────┐     ┌─────────────────────────┐
+  │   ArgoCD    │     │    Helm      │     │ Prometheus + Grafana    │
+  │  GitOps CD  │     │ chart yönetimi│    │ kube-prometheus-stack   │
+  │  ns: argocd │     │              │     │ ns: monitoring          │
+  └─────────────┘     └──────────────┘     └─────────────────────────┘
+```
+
+### ArgoCD (GitOps)
+
+ArgoCD, Kubernetes manifestlerini Git deposundan sürekli senkronize eder.
+
+```bash
+# 1) ArgoCD namespace
+kubectl create namespace argocd
+
+# 2) Resmi kurulum manifesti
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# 3) UI için LoadBalancer (ELB DNS almak üzere)
+kubectl patch svc argocd-server -n argocd \
+  -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl get svc argocd-server -n argocd
+
+# 4) İlk admin şifresi (kullanıcı: admin)
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d && echo
+```
+
+Tarayıcı: `https://<argocd-elb-dns>` (self-signed sertifika uyarısını kabul edin).
+
+> **Not:** Mikroservis manifestleri `namespace: default` kullanır. ArgoCD Application'da destination **default** olmalı; aksi halde ikinci Postgres PVC oluşabilir.
+
+### Helm kurulumu
+
+Monitoring chart'ları Helm 3 ile kurulur:
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+helm version
+```
+
+### Prometheus ve Grafana (kube-prometheus-stack)
+
+```bash
+# 1) Helm repo
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# 2) Namespace ve kurulum
+kubectl create namespace monitoring
+helm install kube-prom-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --debug
+
+# 3) Pod durumu
+kubectl get pods -n monitoring
+
+# 4) Grafana dış erişim
+kubectl patch svc kube-prom-stack-grafana -n monitoring \
+  -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl get svc -n monitoring
+kubectl get svc -n monitoring | grep LoadBalancer
+
+# 5) Grafana admin şifresi (kullanıcı: admin)
+kubectl get secret kube-prom-stack-grafana -n monitoring \
+  -o jsonpath="{.data.admin-password}" | base64 -d && echo
+```
+
+İsteğe bağlı — Prometheus ve Alertmanager UI:
+
+```bash
+kubectl patch svc kube-prom-stack-kube-prome-prometheus -n monitoring \
+  -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl patch svc kube-prom-stack-kube-prome-alertmanager -n monitoring \
+  -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl get svc -n monitoring
+```
+
+| Bileşen | Namespace | Kullanıcı | Erişim |
+|---------|-----------|-----------|--------|
+| ArgoCD UI | `argocd` | `admin` | `https://<argocd-elb>` |
+| Grafana | `monitoring` | `admin` | `http://<grafana-elb>` |
+| Prometheus | `monitoring` | — | `http://<prometheus-elb>:9090` |
+| Alertmanager | `monitoring` | — | `http://<alertmanager-elb>:9093` |
+
+> **Maliyet:** Her LoadBalancer ayrı ELB ücreti oluşturur. Gerekmezse `helm uninstall kube-prom-stack -n monitoring` ile kaldırın.
+
+Kısa script: `_01_terraform/_02_ec2-main/kubernetes.sh`
+
+---
+
 ## README rapor indeksi
 
 | Dosya | İçerik |
@@ -442,6 +547,7 @@ PDF case study metni varsa: `README/Case Study.pdf` (depoda mevcutsa).
 
 Bu depo eğitim ve referans amaçlı bir mikroservis iskeletidir. 
 Kullanımından önce kendinize ait gizli anahtarların ortam değişkenlerini ayarlamalısınız.
+
 ---
 
-**Özet:** Proje, finansal transfer senaryosuna uygun ayrılmış servisler, merkezi config, keşif, gateway ve mesaj odaklı entegrasyon sunar; tutarlılık ve tekrarlanabilirlik için idempotency ve optimistic locking vurgulanmıştır. AWS EKS dağıtımı, kalıcı Postgres (PVC), kaynak isimlendirme ve duraklat/devam adımları için [AWS EKS + ECR deployment](#aws-eks--ecr-deployment) bölümüne bakın. Operasyonel ve mimari detaylar için yukarıdaki `README/` raporlarını kullanın.
+**Özet:** Proje, finansal transfer senaryosuna uygun ayrılmış servisler, merkezi config, keşif, gateway ve mesaj odaklı entegrasyon sunar; tutarlılık ve tekrarlanabilirlik için idempotency ve optimistic locking vurgulanmıştır. AWS EKS dağıtımı için [AWS EKS + ECR deployment](#aws-eks--ecr-deployment), ArgoCD/Helm/monitoring için [DevOps araçları](#devops-araçları-argocd-helm-monitoring) bölümüne bakın.
