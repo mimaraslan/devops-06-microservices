@@ -75,45 +75,26 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
 
 ## Mimari genel bakış
 
-```mermaid
-flowchart LR
-  subgraph client[İstemci]
-    C[Web / Postman / Mobil]
-  end
-  subgraph edge[Kenar]
-    GW[API Gateway]
-  end
-  subgraph platform[Platform]
-    EU[Eureka]
-    CF[Config Server]
-  end
-  subgraph domain[Domain servisleri]
-    AC[Account]
-    LG[Ledger]
-    FR[Fraud]
-    NT[Notification]
-  end
-  subgraph data[Veri ve mesajlaşma]
-    PG[(PostgreSQL)]
-    RD[(Redis)]
-    KF[Kafka (Redpanda)]
-  end
-  C --> GW
-  GW --> EU
-  AC --> CF
-  LG --> CF
-  FR --> CF
-  NT --> CF
-  GW --> AC
-  GW --> LG
-  GW --> FR
-  GW --> NT
-  AC --> PG
-  AC --> RD
-  LG --> PG
-  LG --> KF
-  FR --> KF
-  NT --> KF
+```
+                         ┌─────────────────────────────────────────────────────────────┐
+                         │                    DOMAIN SERVISLERI                        │
+  ┌──────────┐           │  ┌─────────┐ ┌────────┐ ┌───────┐ ┌────────────────┐        │
+  │  Istemci │──HTTP──▶  │  │ Account │ │ Ledger │ │ Fraud │ │ Notification   │        │
+  │ Web/API  │           │  └────┬────┘ └────┬───┘ └───┬───┘ └───────┬────────┘        │
+  └──────────┘           │       │           │         │             │                 │
+       │                 └───────┼───────────┼─────────┼─────────────┼─────────────────┘
+       │                         │           │         │             │
+       ▼                         ▼           ▼         ▼             ▼
+  ┌─────────────┐         ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌──────────┐
+  │ API Gateway │────────▶│ Keycloak │ │PostgreSQL│ │  Redis  │ │  Kafka   │
+  │   :80       │         └──────────┘ │    DB    │ │  cache  │ │ Redpanda │
+  └──────┬──────┘                      └──────────┘ └─────────┘ └──────────┘
+         │
+         ▼
+  ┌──────────────────────┐
+  │ Eureka + Config      │
+  │ :8761        :8888   │
+  └──────────────────────┘
 ```
 
 ---
@@ -124,48 +105,63 @@ flowchart LR
 
 ### Dalga diyagramı
 
-```mermaid
-flowchart TB
-  subgraph w1["Dalga 1 — Altyapı (paralel)"]
-    PG[(postgres)]
-    RD[(redis)]
-    RP[Kafka (Redpanda)]
-    ZK[zipkin]
-  end
-
-  subgraph w2["Dalga 2"]
-    PG --> PI[postgres-init]
-    PG --> KC[keycloak]
-    EU[eureka-server]
-  end
-
-  subgraph w3["Dalga 3"]
-    EU --> CF[config-server]
-  end
-
-  subgraph w4["Dalga 4 — Mikroservisler (paralel)"]
-    CF --> AC[account-service]
-    CF --> LG[ledger-service]
-    CF --> FR[fraud-service]
-    CF --> NT[notification-service]
-    PI --> AC
-    PI --> LG
-    RD --> AC
-    RD --> LG
-    KC --> AC
-    RP --> LG
-    RP --> FR
-    RP --> NT
-  end
-
-  subgraph w5["Dalga 5"]
-    AC --> GW[api-gateway]
-    LG --> GW
-    FR --> GW
-    NT --> GW
-    KC --> GW
-  end
 ```
+  DALGA 1 (paralel)          DALGA 2 (paralel)              DALGA 3
+ ┌─────────────────┐       ┌──────────────────────┐       ┌───────────────┐
+ │ postgres        │       │ postgres-init        │       │ config-server │
+ │ redis           │  ──▶  │ keycloak             │  ──▶  └───────┬───────┘
+ │ redpanda        │       │ eureka-server        │               │
+ │ zipkin          │       └──────────────────────┘               │
+ └─────────────────┘                                              ▼
+                                                         DALGA 4 (paralel)
+                                              ┌──────────────────────────────┐
+                                              │ account-service              │
+                                              │ ledger-service               │
+                                              │ fraud-service                │
+                                              │ notification-service         │
+                                              └──────────────┬───────────────┘
+                                                             │
+                                                             ▼
+                                                    DALGA 5
+                                              ┌──────────────────┐
+                                              │   api-gateway    │
+                                              │       :80        │
+                                              └──────────────────┘
+```
+
+> **Not:** Dalga 4'teki mikroservisler `eureka-server` ve `config-server` healthy olduktan sonra başlar; `zipkin` için yalnızca `service_started` beklenir (healthcheck zorunlu değil).
+
+### Detaylı bağımlılıklar
+
+```
+                              ┌─────────────────┐
+                              │   api-gateway   │
+                              └────────┬────────┘
+           ┌────────────┬───────────┼───────────┬────────────┐
+           ▼            ▼           ▼           ▼            ▼
+    ┌────────────┐ ┌──────────┐ ┌─────────┐ ┌─────────┐ ┌──────────────┐
+    │  account   │ │  ledger  │ │  fraud  │ │ notify  │ keycloak     │
+    │  service   │ │  service │ │ service │ │ service │ redis        │
+    └─────┬──────┘ └────┬─────┘ └────┬────┘ └────┬────┘ │ config     │
+          │             │            │           │      │ eureka     │
+          │             │            │           │      └────────────┘
+          ▼             ▼            ▼           ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │  postgres ◀── postgres-init    redpanda    zipkin (started) │
+    └─────────────────────────────────────────────────────────────┘
+```
+
+| Kaynak | Bağımlı servisler |
+|--------|-------------------|
+| `postgres` | `postgres-init`, `keycloak`, `account`, `ledger` |
+| `postgres-init` | `account`, `ledger` (completed) |
+| `redis` | `account`, `ledger`, `api-gateway` |
+| `redpanda` | `ledger`, `fraud`, `notification` |
+| `keycloak` | `account`, `api-gateway` |
+| `eureka-server` | `config-server`, tüm mikroservisler, `api-gateway` |
+| `config-server` | tüm mikroservisler, `api-gateway` |
+| `zipkin` | tüm mikroservisler (started) |
+| 4 mikroservis | `api-gateway` (healthy) |
 
 ### Servis bağımlılıkları (özet)
 
@@ -175,10 +171,10 @@ flowchart TB
 | `keycloak` | `postgres` **healthy** (+ kendi healthcheck, ~1–2 dk) |
 | `eureka-server` | Bağımsız (ilk platform servisi) |
 | `config-server` | `eureka-server` **healthy** |
-| `account-service` | DB init tamam, `redis` + `keycloak` **healthy**, config + eureka **healthy** |
-| `ledger-service` | DB init, `redis` + Kafka (Redpanda) (`redpanda`) **healthy**, config + eureka **healthy** |
-| `fraud-service` / `notification-service` | Kafka (Redpanda) (`redpanda`) **healthy**, config + eureka **healthy** |
-| `api-gateway` | Tüm mikroservisler + `keycloak` + `redis` **healthy** |
+| `account-service` | `postgres-init` **completed**, `postgres` + `redis` + `keycloak` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
+| `ledger-service` | `postgres-init` **completed**, `postgres` + `redis` + `redpanda` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
+| `fraud-service` / `notification-service` | `redpanda` **healthy**, `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
+| `api-gateway` | Tüm mikroservisler + `keycloak` + `redis` + `config-server` + `eureka-server` **healthy**, `zipkin` **started** |
 
 ### Healthcheck notları
 
@@ -186,7 +182,7 @@ flowchart TB
 |---------|---------|
 | PostgreSQL | `pg_isready` |
 | Redis | `redis-cli ping` |
-| Kafka (Redpanda) | `rpk cluster health` |
+| Redpanda (Kafka) | `rpk cluster health` |
 | Keycloak | `/health/ready` (TCP) |
 | Eureka / Config / mikroservisler / Gateway | `curl` → `/actuator/health` |
 | Zipkin | `wget` → `/health` |
