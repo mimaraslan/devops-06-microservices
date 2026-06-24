@@ -375,15 +375,16 @@ Maliyet düşürmek için kaynakları güvenli şekilde duraklatma:
 ### Duraklat (maliyet tasarrufu)
 
 ```powershell
-# Jenkins EC2 — AWS konsolundan Stop veya:
-aws ec2 stop-instances --instance-ids <jenkins-instance-id>
-
 # EKS worker — node group scale (EC2'yi elle Stop ETMEYIN)
 aws eks update-nodegroup-config `
   --cluster-name project-eks `
   --nodegroup-name project-eks-node-group `
   --region us-east-1 `
   --scaling-config minSize=0,maxSize=1,desiredSize=0
+
+# Jenkins EC2 — AWS konsolundan Stop veya:
+aws ec2 stop-instances --instance-ids <jenkins-instance-id>
+
 ```
 
 > Postgres PVC (EBS) worker kapalıyken de **silinmez** (~$0.80/ay disk ücreti devam eder).
